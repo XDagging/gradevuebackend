@@ -8,7 +8,7 @@ const MemoryStore = require('memorystore')(session)
 const axios = require("axios")
 const cheerio = require('cheerio');
 const qs = require('qs');
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser') 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 const options = {
     
