@@ -37,7 +37,25 @@ const options = {
 const server = https.createServer(options,app)
 app.set('trust proxy', 1) // trust first proxy
 
-app.use(cors({ credentials: true, origin: true }));
+
+// For localhost
+// app.use(cors({
+//      credentials: true, 
+//      methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+//      origin: true
+// }));
+
+
+
+// For production
+app.use(cors({
+    credentials: true, 
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    origin: "https://gradevue.com"
+}));
+
+
+
 app.use(bodyParser.json())
 app.use(session({
     secret: "secret cat",
