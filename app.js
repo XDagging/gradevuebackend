@@ -15,23 +15,24 @@ const bodyParser = require('body-parser')
 
 
 // Local host stuff
-// process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-
-// const options = {
+const port = 300
+const options = {
     
-//     key: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\key.pem'),
-//     cert: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\certificate.pem')
-// }
+    key: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\key.pem'),
+    cert: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\certificate.pem')
+}
 
 
 
 // Production stuff
 
-const options = {
-    cert: fs.readFileSync("/etc/letsencrypt/live/api.gradevue.com/cert.pem"),    
-    key : fs.readFileSync("/etc/letsencrypt/live/api.gradevue.com/privkey.pem"),
-}
+// const options = {
+//     cert: fs.readFileSync("/etc/letsencrypt/live/api.gradevue.com/cert.pem"),    
+//     key : fs.readFileSync("/etc/letsencrypt/live/api.gradevue.com/privkey.pem"),
+// }
+// const port = 443
 
 
 const server = https.createServer(options,app)
@@ -39,20 +40,20 @@ app.set('trust proxy', 1) // trust first proxy
 
 
 // For localhost
-// app.use(cors({
-//      credentials: true, 
-//      methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-//      origin: true
-// }));
+app.use(cors({
+     credentials: true, 
+     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+     origin: "http://localhost:3000"
+}));
 
 
 
 // For production
-app.use(cors({
-    credentials: true, 
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    origin: "https://gradevue.com"
-}));
+// app.use(cors({
+//     credentials: true, 
+//     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+//     origin: "https://gradevue.com"
+// }));
 
 
 
@@ -462,16 +463,19 @@ app.post("/doeverything", (req,res) => {
                                             console.log("heres the i value",i)
                                             console.log("the name is", allAssignments[i][name.itemID])
                                             console.log("heres the title of the assignment", name.title)
-                                            allAssignments[i][name.itemID].name = name.title
-                                            let month = name.monthName
-                                            let day = name.monthDay
+                                            if (allAssignments[i][name.itemID] != (undefined)) {
+                                                allAssignments[i][name.itemID].name = name.title
+                                                let month = name.monthName
+                                                let day = name.monthDay
+                                               
+                                                let d = new Date()
+                                                let year = d.getFullYear()
+    
+                                                let formattedDate = day+ "-" + month+"-"+ year
+    
+                                                allAssignments[i][name.itemID].date = Date.parse(formattedDate)
+                                            }
                                            
-                                            let d = new Date()
-                                            let year = d.getFullYear()
-
-                                            let formattedDate = day+ "-" + month+"-"+ year
-
-                                            allAssignments[i][name.itemID].date = Date.parse(formattedDate)
 
                                         })
                                         
@@ -506,7 +510,18 @@ app.post("/doeverything", (req,res) => {
                         assignmentTypes: allCategories,
                         name: firstName
                     }
+
+
+
+                    
+
+
+
+
                 }));
+                users.delete(req.sessionID)
+                userClasses.delete(user)
+                
                 }
             })
 
@@ -854,7 +869,6 @@ function getAssignmentNames(cookie, user, endpoint) {
 
 
 
-
 }
 
 
@@ -1003,8 +1017,8 @@ app.get("/postman", (req,res) => {
 
 
 
-server.listen(443, () => {
-    console.log("listening on port 300")
+server.listen(port, () => {
+    console.log("listening on port", port)
 })
 
 
