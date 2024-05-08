@@ -9,12 +9,30 @@ const axios = require("axios")
 const cheerio = require('cheerio');
 const qs = require('qs');
 const bodyParser = require('body-parser') 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-const options = {
+
+
+
+
+
+// Local host stuff
+// process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+
+// const options = {
     
-    key: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\key.pem'),
-    cert: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\certificate.pem')
+//     key: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\key.pem'),
+//     cert: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\certificate.pem')
+// }
+
+
+
+// Production stuff
+
+const options = {
+    key : fs.readFileSync("/etc/letsencrypt/live/api.laylnk.com/api.gradevue.com/key.pem"),
+    cert: fs.readFileSync("/etc/letsencrypt/live/api.laylnk.com/api.gradevue.com/cert.pem"),    
 }
+
 
 const server = https.createServer(options,app)
 app.set('trust proxy', 1) // trust first proxy
