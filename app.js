@@ -29,8 +29,8 @@ const bodyParser = require('body-parser')
 // Production stuff
 
 const options = {
-    key : fs.readFileSync("/etc/letsencrypt/live/api.laylnk.com/api.gradevue.com/key.pem"),
-    cert: fs.readFileSync("/etc/letsencrypt/live/api.laylnk.com/api.gradevue.com/cert.pem"),    
+    key : fs.readFileSync("/etc/letsencrypt/live/api.gradevue.com/key.pem"),
+    cert: fs.readFileSync("/etc/letsencrypt/live/api.gradevue.com/cert.pem"),    
 }
 
 
