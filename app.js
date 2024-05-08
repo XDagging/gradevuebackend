@@ -15,24 +15,24 @@ const bodyParser = require('body-parser')
 
 
 // Local host stuff
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+// process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-const port = 300
-const options = {
+// const port = 300
+// const options = {
     
-    key: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\key.pem'),
-    cert: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\certificate.pem')
-}
+//     key: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\key.pem'),
+//     cert: fs.readFileSync('C:\\Program Files\\Git\\usr\\bin\\certificate.pem')
+// }
 
 
 
 // Production stuff
 
-// const options = {
-//     cert: fs.readFileSync("/etc/letsencrypt/live/api.gradevue.com/cert.pem"),    
-//     key : fs.readFileSync("/etc/letsencrypt/live/api.gradevue.com/privkey.pem"),
-// }
-// const port = 443
+const options = {
+    cert: fs.readFileSync("/etc/letsencrypt/live/api.gradevue.com/cert.pem"),    
+    key : fs.readFileSync("/etc/letsencrypt/live/api.gradevue.com/privkey.pem"),
+}
+const port = 443
 
 
 const server = https.createServer(options,app)
@@ -40,20 +40,20 @@ app.set('trust proxy', 1) // trust first proxy
 
 
 // For localhost
-app.use(cors({
-     credentials: true, 
-     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-     origin: "http://localhost:3000"
-}));
+// app.use(cors({
+//      credentials: true, 
+//      methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+//      origin: "http://localhost:3000"
+// }));
 
 
 
 // For production
-// app.use(cors({
-//     credentials: true, 
-//     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-//     origin: "https://gradevue.com"
-// }));
+app.use(cors({
+    credentials: true, 
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    origin: "https://gradevue.com"
+}));
 
 
 
