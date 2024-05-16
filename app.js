@@ -9,7 +9,7 @@ const axios = require("axios")
 const cheerio = require('cheerio');
 const qs = require('qs');
 const bodyParser = require('body-parser') 
-
+const serverless = require("serverless-http")
 
 
 
@@ -207,34 +207,47 @@ const users = new Map();
 const userClasses = new Map();
 
 function authenticateUser(req) {
-    return new Promise((resolve) => {
-        let sessionId = req.sessionID;
+    return new Promise((resolve, reject) => {
+        resolve(req)
+    })
+    // return new Promise((resolve) => {
+    //     let sessionId = req.sessionID;
 
-        if (!sessionId) {
-            resolve("No user found");
-        } else {
-            req.sessionStore.get(sessionId, (err, session) => {
-                if (err) {
-                    console.log(err);
-                    resolve("No user found");
-                } else {
-                    if (!session) {
-                        resolve("No user found");
-                    } else {
-                        const currentUser = session.user;
-                        if (!currentUser) {
-                            resolve("No user found");
-                        } else {
-                            resolve(currentUser);
-                        }
-                    }
-                }
-            });
-        }
-    });
+    //     if (!sessionId) {
+    //         resolve("No user found");
+    //     } else {
+    //         req.sessionStore.get(sessionId, (err, session) => {
+    //             if (err) {
+    //                 console.log(err);
+    //                 resolve("No user found");
+    //             } else {
+    //                 if (!session) {
+    //                     resolve("No user found");
+    //                 } else {
+    //                     const currentUser = session.user;
+    //                     if (!currentUser) {
+    //                         resolve("No user found");
+    //                     } else {
+    //                         resolve(currentUser);
+    //                     }
+    //                 }
+    //             }
+    //         });
+    //     }
+    // });
 }
 
 app.post("/login", (req,res) => {
+
+    
+})
+
+
+
+
+
+app.post("/doeverything", (req,res) => {
+
 
     let endpoint;
     let password;
@@ -276,16 +289,242 @@ app.post("/login", (req,res) => {
                 req.session.user = response[1]
                 users.set(req.sessionID, clientId)
                 console.log(users)
-                res.status(201).send({ 
-                    code: "ok",
-                    message: "success"
+
+                try {
+                    endpoint = req.body.endpoint
+                    if (endpoint === undefined) {
+                        res.status(400).send(JSON.stringify({
+                            code: "err", 
+                            message: "invalid"
+                        }))
+                        return
+                    }
+                } catch(e) {
+                    console.log(e)
+                    res.status(400).send(JSON.stringify({
+                        code: "err", 
+                        message: "invalid"
+                    }))
+                    return
+                }
+            
+            
+            
+                const user = username
+                authenticateUser(user).then((user) => {
+                    if (user == "No user found") {
+                        console.log("no one was found lol")
+                        res.status(404).send(JSON.stringify({code: "err", message: "no user found"}))
+                    } else {
+                        console.log(user)
+            
+                        getGrades(user, req, endpoint).then(async(response) => {
+            
+            
+                            const $ = cheerio.load(response.data)
+                            const allClasses = $(".gb-class-row")
+                            let idList = []
+                            let schoolHeaders
+                            for (let i=0; i<allClasses.length; i++) {
+                                if ((idList.includes(allClasses[i].attribs['data-guid'])) == false) {
+                                    idList.push(allClasses[i].attribs['data-guid'])
+                                } else {
+                                    // do nothing
+                                }
+                            }
+                            const allButtons = $(".btn")
+                            for (let k=0; k<allButtons.length; k++) {
+                                try {
+                                    
+                                    if ((JSON.parse(allButtons[k].attribs['data-focus'])) != (undefined)) {
+                                        let parsedData = JSON.parse(allButtons[k].attribs['data-focus']).FocusArgs
+                                        schoolHeaders = {
+                                            schoolId: parsedData["schoolID"],
+                                            studentGU: parsedData["studentGU"],
+                                            markPeriodGU: parsedData["markPeriodGU"],
+                                            gradePeriodGU: parsedData["gradePeriodGU"],
+                                            OrgYearGU: parsedData["OrgYearGU"]
+                                        }
+                                        
+            
+                                        break;
+                                    
+                                    }
+                                } catch(e) {
+                                    // nothing
+                                }
+                                
+                            }
+                            console.log(schoolHeaders)
+                            console.log(idList)
+                            userClasses.set(user, 
+                                {
+                                    schoolHeaders: schoolHeaders,
+                                    classes: idList
+                                })
+                                    if (user == "No user found") {
+                                        console.log("no one was found")
+                                        res.status(404).send(JSON.stringify({code: "err", message: "no user found"}))
+                                    } else {
+                                        const sessionCookies = users.get(req.session.id)
+                            
+                                        let gradeBands = []
+                                        let firstPeriodId = 0
+                                        let allAssignments = []
+                                        let allCategories = []
+                                        let allClassGrades = []
+                                        let firstName
+                                        let continueLoop = true;
+                                        let data = {}
+                            
+                                    for (let i=0; i<userClasses.get(user)['classes'].length; i++) {
+                                        await preWork(sessionCookies, user, i, endpoint).then(async () => {
+                                    
+            
+                                    
+                                        await getNames(sessionCookies, user, endpoint).then(async (names) => {
+                                    if (!continueLoop) {
+                                        return; 
+                                    }
+                                    if (sessionCookies != (undefined || null)) {
+                                        await preWork(sessionCookies, user, i, endpoint).then(async () => {
+                                            await getWork(sessionCookies, user).then(async (response) => {
+                                            
+                                            if (gradeBands.length === 0) {
+                                                response.data.analysisBands[0].details.map((band, i) => {
+                                                    gradeBands.push({
+                                                        highScore: band.highScore,
+                                                        lowScore: band.lowScore,
+                                                        mark: band.mark
+                                                    });
+                                                });
+                                            }
+                                            console.log("try the thing")
+                                                if (i === 0) {
+                                                    firstPeriodId = response.data.classId;
+                                                    firstName = response.data.students[0].name;
+                                                    response.data.measureTypes.map((type) => {
+                                                    if (type.weight > 0) {
+                                                        allCategories.push(
+                                                            {
+                                                                assignmentType: type.name,
+                                                                categoryWorth: type.weight
+                                                            }
+                                                        )
+                                                        
+                                                    }
+                                                    })
+            
+                                                    
+                                                }
+                                                let classList = {}
+                                                response.data.assignments.map((assignment) => {
+                                                    const key = assignment.gradeBookId
+                                                    
+                                                    classList[key] = {
+                                                        category: assignment.category,
+                                                        totalEarned: parseFloat(assignment.score),
+                                                        totalPoints: parseFloat(assignment.maxValue)
+                                                    }
+                                                });
+                                                allAssignments.push(classList)
+                            
+                                                allClassGrades.push({courseName: names.data.d.Data.Classes[i].Name,
+                                                    grade: response.data.classGrades[0].totalWeightedPercentage,
+                                                    period: i+1,
+                                                    courseTeacher: names.data.d.Data.Classes[i].TeacherName})
+            
+            
+                                            await getAssignmentNames(sessionCookies, user, endpoint).then((names) => {
+                                                const dataNames = names.data.responseData.data
+                                                let allNames = []
+                                                dataNames.map((week) => {
+                                                    week.items.map((name) => {
+                                                        console.log("heres the i value",i)
+                                                        console.log("the name is", allAssignments[i][name.itemID])
+                                                        console.log("heres the title of the assignment", name.title)
+                                                        if (allAssignments[i][name.itemID] != (undefined)) {
+                                                            allAssignments[i][name.itemID].name = name.title
+                                                            let month = name.monthName
+                                                            let day = name.monthDay
+                                                           
+                                                            let d = new Date()
+                                                            let year = d.getFullYear()
+                
+                                                            let formattedDate = day+ "-" + month+"-"+ year
+                
+                                                            allAssignments[i][name.itemID].date = Date.parse(formattedDate)
+                                                        }
+                                                       
+            
+                                                    })
+                                                    
+                                                })
+                                                // const reversedNames = allNames.toReversed()
+                                                console.log(names)
+                            
+                                            })
+            
+            
+                                        })
+                                        });
+                                    } else {
+                                        console.log("session cookie expired");
+                                        res.status(200).send(JSON.stringify({
+                                            code: "err",
+                                            message: "no session found"
+                                        }));
+                                        continueLoop = false;
+                                    }
+                                });
+                            })
+                            }
+                            
+                            res.status(200).send(JSON.stringify({
+                                code: "ok",
+                                message: {
+                                    
+                                    allAssignments: allAssignments,
+                                    gradeBands: gradeBands,
+                                    initialGrades: allClassGrades,
+                                    assignmentTypes: allCategories,
+                                    name: firstName
+                                }
+            
+            
+            
+                                
+            
+            
+            
+            
+                            }));
+                            users.delete(req.sessionID)
+                            userClasses.delete(user)
+                            
+                            }
+                        })
+            
+            
+                    }
                 })
+                
+
+
+
+
+
+
+                
+
+
                 console.log(response)
             } else {
                 res.status(404).send({
                     code: "err",
                     message: "invalid credentials"
                 })
+                return
             }
             // this would only occur if it went well 
             // might not be scalable between schools
@@ -297,248 +536,6 @@ app.post("/login", (req,res) => {
         })
 
     })
-
-
-
-
-})
-
-
-
-
-
-app.post("/doeverything", (req,res) => {
-    
-    let endpoint;
-    try {
-        endpoint = req.body.endpoint
-        if (endpoint === undefined) {
-            res.status(400).send(JSON.stringify({
-                code: "err", 
-                message: "invalid"
-            }))
-            return
-        }
-    } catch(e) {
-        console.log(e)
-        res.status(400).send(JSON.stringify({
-            code: "err", 
-            message: "invalid"
-        }))
-        return
-    }
-
-
-
-
-    authenticateUser(req).then((user) => {
-        if (user == "No user found") {
-            console.log("no one was found lol")
-            res.status(404).send(JSON.stringify({code: "err", message: "no user found"}))
-        } else {
-            console.log(user)
-
-            getGrades(user, req, endpoint).then(async(response) => {
-
-
-                const $ = cheerio.load(response.data)
-                const allClasses = $(".gb-class-row")
-                let idList = []
-                let schoolHeaders
-                for (let i=0; i<allClasses.length; i++) {
-                    if ((idList.includes(allClasses[i].attribs['data-guid'])) == false) {
-                        idList.push(allClasses[i].attribs['data-guid'])
-                    } else {
-                        // do nothing
-                    }
-                }
-                const allButtons = $(".btn")
-                for (let k=0; k<allButtons.length; k++) {
-                    try {
-                        
-                        if ((JSON.parse(allButtons[k].attribs['data-focus'])) != (undefined)) {
-                            let parsedData = JSON.parse(allButtons[k].attribs['data-focus']).FocusArgs
-                            schoolHeaders = {
-                                schoolId: parsedData["schoolID"],
-                                studentGU: parsedData["studentGU"],
-                                markPeriodGU: parsedData["markPeriodGU"],
-                                gradePeriodGU: parsedData["gradePeriodGU"],
-                                OrgYearGU: parsedData["OrgYearGU"]
-                            }
-                            
-
-                            break;
-                        
-                        }
-                    } catch(e) {
-                        // nothing
-                    }
-                    
-                }
-                console.log(schoolHeaders)
-                console.log(idList)
-                userClasses.set(user, 
-                    {
-                        schoolHeaders: schoolHeaders,
-                        classes: idList
-                    })
-                        if (user == "No user found") {
-                            console.log("no one was found")
-                            res.status(404).send(JSON.stringify({code: "err", message: "no user found"}))
-                        } else {
-                            const sessionCookies = users.get(req.session.id)
-                
-                            let gradeBands = []
-                            let firstPeriodId = 0
-                            let allAssignments = []
-                            let allCategories = []
-                            let allClassGrades = []
-                            let firstName
-                            let continueLoop = true;
-                            let data = {}
-                
-                        for (let i=0; i<userClasses.get(user)['classes'].length; i++) {
-                            await preWork(sessionCookies, user, i, endpoint).then(async () => {
-                        
-
-                        
-                            await getNames(sessionCookies, user, endpoint).then(async (names) => {
-                        if (!continueLoop) {
-                            return; 
-                        }
-                        if (sessionCookies != (undefined || null)) {
-                            await preWork(sessionCookies, user, i, endpoint).then(async () => {
-                                await getWork(sessionCookies, user).then(async (response) => {
-                                
-                                if (gradeBands.length === 0) {
-                                    response.data.analysisBands[0].details.map((band, i) => {
-                                        gradeBands.push({
-                                            highScore: band.highScore,
-                                            lowScore: band.lowScore,
-                                            mark: band.mark
-                                        });
-                                    });
-                                }
-                                console.log("try the thing")
-                                    if (i === 0) {
-                                        firstPeriodId = response.data.classId;
-                                        firstName = response.data.students[0].name;
-                                        response.data.measureTypes.map((type) => {
-                                        if (type.weight > 0) {
-                                            allCategories.push(
-                                                {
-                                                    assignmentType: type.name,
-                                                    categoryWorth: type.weight
-                                                }
-                                            )
-                                            
-                                        }
-                                        })
-
-                                        
-                                    }
-                                    let classList = {}
-                                    response.data.assignments.map((assignment) => {
-                                        const key = assignment.gradeBookId
-                                        
-                                        classList[key] = {
-                                            category: assignment.category,
-                                            totalEarned: parseFloat(assignment.score),
-                                            totalPoints: parseFloat(assignment.maxValue)
-                                        }
-                                    });
-                                    allAssignments.push(classList)
-                
-                                    allClassGrades.push({courseName: names.data.d.Data.Classes[i].Name,
-                                        grade: response.data.classGrades[0].totalWeightedPercentage,
-                                        period: i+1,
-                                        courseTeacher: names.data.d.Data.Classes[i].TeacherName})
-
-
-                                await getAssignmentNames(sessionCookies, user, endpoint).then((names) => {
-                                    const dataNames = names.data.responseData.data
-                                    let allNames = []
-                                    dataNames.map((week) => {
-                                        week.items.map((name) => {
-                                            console.log("heres the i value",i)
-                                            console.log("the name is", allAssignments[i][name.itemID])
-                                            console.log("heres the title of the assignment", name.title)
-                                            if (allAssignments[i][name.itemID] != (undefined)) {
-                                                allAssignments[i][name.itemID].name = name.title
-                                                let month = name.monthName
-                                                let day = name.monthDay
-                                               
-                                                let d = new Date()
-                                                let year = d.getFullYear()
-    
-                                                let formattedDate = day+ "-" + month+"-"+ year
-    
-                                                allAssignments[i][name.itemID].date = Date.parse(formattedDate)
-                                            }
-                                           
-
-                                        })
-                                        
-                                    })
-                                    // const reversedNames = allNames.toReversed()
-                                    console.log(names)
-                
-                                })
-
-
-                            })
-                            });
-                        } else {
-                            console.log("session cookie expired");
-                            res.status(200).send(JSON.stringify({
-                                code: "err",
-                                message: "no session found"
-                            }));
-                            continueLoop = false;
-                        }
-                    });
-                })
-                }
-                
-                res.status(200).send(JSON.stringify({
-                    code: "ok",
-                    message: {
-                        
-                        allAssignments: allAssignments,
-                        gradeBands: gradeBands,
-                        initialGrades: allClassGrades,
-                        assignmentTypes: allCategories,
-                        name: firstName
-                    }
-
-
-
-                    
-
-
-
-
-                }));
-                users.delete(req.sessionID)
-                userClasses.delete(user)
-                
-                }
-            })
-
-
-        }
-    })
-    
-
-
-    
-    
-            
-
-
-
-
-
         })
         
 
@@ -625,218 +622,85 @@ async function getGrades(user, req, endpoint) {
 
  
 
-app.get("/gradeApi" , (req,res) => {
+// app.get("/gradeApi" , (req,res) => {
     
-    authenticateUser(req).then((user) => {
-        if (user == "No user found") {
-            console.log("no one was found lol")
-            res.status(404).send(JSON.stringify({code: "err", message: "no user found"}))
-        } else {
-            console.log(user)
-
-            getGrades(user, req).then((response) => {
-
-
-                const $ = cheerio.load(response.data)
-                const allClasses = $(".gb-class-row")
-                let idList = []
-                let schoolHeaders
-                for (let i=0; i<allClasses.length; i++) {
-                    if ((idList.includes(allClasses[i].attribs['data-guid'])) == false) {
-                        idList.push(allClasses[i].attribs['data-guid'])
-                    } else {
-                        // do nothing
-                    }
-                }
-                const allButtons = $(".btn")
-                for (let k=0; k<allButtons.length; k++) {
-                    try {
-                        
-                        if ((JSON.parse(allButtons[k].attribs['data-focus'])) != (undefined)) {
-                            let parsedData = JSON.parse(allButtons[k].attribs['data-focus']).FocusArgs
-                            schoolHeaders = {
-                                schoolId: parsedData["schoolID"],
-                                studentGU: parsedData["studentGU"],
-                                markPeriodGU: parsedData["markPeriodGU"],
-                                gradePeriodGU: parsedData["gradePeriodGU"],
-                                OrgYearGU: parsedData["OrgYearGU"]
-                            }
-                            
-
-                            break;
-                        
-                        }
-                    } catch(e) {
-                        // nothing
-                    }
-                    
-                }
-                console.log(schoolHeaders)
-                console.log(idList)
-                userClasses.set(user, 
-                    {
-                        schoolHeaders: schoolHeaders,
-                        classes: idList
-                    })
-
-
-
-
-
-                
-
-
-
-
-
-
-                res.status(200).send(JSON.stringify({code: "ok", message: "grades acquired"}))
-                console.log(response)
-
-            })
-
-        }
-    })
-
-    
-
-
-
-
-    
-})
-
-
-// app.get("/getAssignments", (req,res) => {
-//     authenticateUser(req).then(async (user) => {
+//     authenticateUser(req).then((user) => {
 //         if (user == "No user found") {
-//             console.log("no one was found")
+//             console.log("no one was found lol")
 //             res.status(404).send(JSON.stringify({code: "err", message: "no user found"}))
 //         } else {
-//             const sessionCookies = users.get(req.session.id)
+//             console.log(user)
 
-//             let gradeBands = []
-//             let firstPeriodId = 0
-//             let allAssignments = []
-//             let allClassGrades = {}
-//             let firstName
-//             let allCategories
-//             let continueLoop = true;
-//             let data = {}
+//             getGrades(user, req).then((response) => {
 
-//         for (let i=0; i<userClasses.get(user)['classes'].length; i++) {
 
-        
-
-//     await preWork(sessionCookies, user, i).then(async () => {
-//         if (!continueLoop) {
-//             return; // Exit the loop if continueLoop is false
-//         }
-//         if (sessionCookies != (undefined || null)) {
-//             await getWork(sessionCookies, user).then(async (response) => {
-//                 if (gradeBands.length === 0) {
-//                     response.data.analysisBands[0].details.map((band, i) => {
-//                         gradeBands.push({
-//                             highScore: band.highScore,
-//                             lowScore: band.lowScore,
-//                             mark: band.mark
-//                         });
-//                     });
-//                 }
-
-//                 if (firstPeriodId != response.data.classId) {
-//                     if (i === 0) {
-//                         firstPeriodId = response.data.classId;
-//                         firstName = response.data.students[0].name;
-
-//                         response.data.measureTypes.map((type) => {
-//                             if (type.weight > 0) {
-
-//                             }
-//                         })
+//                 const $ = cheerio.load(response.data)
+//                 const allClasses = $(".gb-class-row")
+//                 let idList = []
+//                 let schoolHeaders
+//                 for (let i=0; i<allClasses.length; i++) {
+//                     if ((idList.includes(allClasses[i].attribs['data-guid'])) == false) {
+//                         idList.push(allClasses[i].attribs['data-guid'])
+//                     } else {
+//                         // do nothing
 //                     }
-//                     let classList = {}
-//                     response.data.assignments.map((assignment) => {
-//                         const key = assignment.gradeBookId
-                        
-//                         classList[key] = {
-//                             category: assignment.category,
-//                             totalEarned: assignment.score,
-//                             totalPoints: assignment.maxValue
-//                         }
-
-
-
-                       
-//                     });
-
-//                     allAssignments.push(classList)
-
-                    
-//                     allClassGrades[response.data.className] = response.data.classGrades[0].totalWeightedPercentage;
-                
 //                 }
-
-//                 const thing = response;
-//                 console.log(response);
-
-//                 await getAssignmentNames(sessionCookies, user).then((names) => {
-//                     const dataNames = names.data.responseData.data
-//                     let allNames = []
-                    
-
-
-//                     dataNames.map((week) => {
-//                         week.items.map((name) => {
-//                             allAssignments[i][name.itemID].name = name.title
-//                         })
+//                 const allButtons = $(".btn")
+//                 for (let k=0; k<allButtons.length; k++) {
+//                     try {
                         
+//                         if ((JSON.parse(allButtons[k].attribs['data-focus'])) != (undefined)) {
+//                             let parsedData = JSON.parse(allButtons[k].attribs['data-focus']).FocusArgs
+//                             schoolHeaders = {
+//                                 schoolId: parsedData["schoolID"],
+//                                 studentGU: parsedData["studentGU"],
+//                                 markPeriodGU: parsedData["markPeriodGU"],
+//                                 gradePeriodGU: parsedData["gradePeriodGU"],
+//                                 OrgYearGU: parsedData["OrgYearGU"]
+//                             }
+                            
+
+//                             break;
+                        
+//                         }
+//                     } catch(e) {
+//                         // nothing
+//                     }
+                    
+//                 }
+//                 console.log(schoolHeaders)
+//                 console.log(idList)
+//                 userClasses.set(user, 
+//                     {
+//                         schoolHeaders: schoolHeaders,
+//                         classes: idList
 //                     })
-//                     // const reversedNames = allNames.toReversed()
-                   
 
 
 
 
 
-//                     console.log(names)
-
-//                 })
-
-
-
-
-//             });
-//         } else {
-//             console.log("session cookie expired");
-//             res.status(200).send(JSON.stringify({
-//                 code: "err",
-//                 message: "no session found"
-//             }));
-//             continueLoop = false;
-//         }
-//     });
-// }
-
-// res.status(200).send(JSON.stringify({
-//     code: "ok",
-//     message: {
-        
-//         allAssignments: allAssignments,
-//         gradeBands: gradeBands,
-//         initialGrades: allClassGrades
-//     }
-// }));
+                
 
 
 
 
 
-            
-            
+
+//                 res.status(200).send(JSON.stringify({code: "ok", message: "grades acquired"}))
+//                 console.log(response)
+
+//             })
 
 //         }
 //     })
+
+    
+
+
+
+
+    
 // })
 
 function getAssignmentNames(cookie, user, endpoint) {
@@ -965,28 +829,6 @@ axios.request(config)
   resolve(error)
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     })
 }
 
@@ -998,28 +840,19 @@ axios.request(config)
 
 
 
-app.get("/", (req,res) => {
-    res.send("ajksdf")
-})
-
-
-app.get("/postman", (req,res) => {
-
-    
-      
-
-
-
-
-
+app.get("/hello", (req,res) => {
+    res.send("hello")
 })
 
 
 
 
-server.listen(port, () => {
-    console.log("listening on port", port)
-})
+
+
+
+// server.listen(port, () => {
+//     console.log("listening on port", port)
+// })
 
 
 
@@ -1073,3 +906,7 @@ axios.request(config)
 
 
 }
+
+
+
+module.exports.handler = serverless(app)
