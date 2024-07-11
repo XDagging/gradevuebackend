@@ -35,7 +35,7 @@ const options = {
 // const port = 443
 
 
-const server = https.createServer(options,app)
+
 app.set('trust proxy', 1) // trust first proxy
 
 
@@ -46,6 +46,8 @@ app.use(cors({
      origin: "http://localhost:3000"
 }));
 
+
+const server = https.createServer(options,app)
 
 
 // For production
@@ -58,6 +60,7 @@ app.use(cors({
 
 
 app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true}))
 app.use(session({
     secret: "secret cat",
     cookie: {
@@ -237,10 +240,7 @@ function authenticateUser(req) {
     // });
 }
 
-app.post("/login", (req,res) => {
 
-    
-})
 
 
 
@@ -248,10 +248,10 @@ app.post("/login", (req,res) => {
 
 app.post("/doeverything", (req,res) => {
 
-
     let endpoint;
     let password;
     let username;
+    let body;
     try {
         endpoint = req.body.endpoint
         password = req.body.password
@@ -283,7 +283,7 @@ app.post("/doeverything", (req,res) => {
             const list = response[0].request.path.split("/").filter((word) => word=="PXP2_LaunchPad.aspx" )
 
 
-         
+            console.log("heres the repsonse", response)
     
             if (list.length === 1) {
                 req.session.user = response[1]
@@ -850,9 +850,9 @@ app.get("/hello", (req,res) => {
 
 
 
-// server.listen(port, () => {
-//     console.log("listening on port", port)
-// })
+server.listen(port, () => {
+    console.log("listening on port", port)
+})
 
 
 
@@ -906,7 +906,10 @@ axios.request(config)
 
 
 }
+// const handler = serverless(app)
 
-
-
-module.exports.handler = serverless(app)
+// module.exports.handler = async (event,context) => {
+//     const result = await handler(event,context)
+    
+//     return result
+// }
